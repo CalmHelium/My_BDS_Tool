@@ -1,14 +1,85 @@
-At present, this project provides basic automation for **Minecraft Bedrock Dedicated Server (BDS)** management. It can automatically:
+# My BDS MaintenanceTool
 
-* Shut down the Minecraft BDS server.
-* Back up the server world/save data.
-* Restart the BDS server after the backup is completed.
-* Detect an existing BDS instance by its configured **network port** and **executable path**, ensuring that the process is running from the corresponding directory's `bedrock_server.exe`. If no matching instance is found, launch a new BDS instance.
-* If an existing BDS instance launched from the current directory is detected, the program will display a warning and pause its own process. It will resume and restart the detection process after the user presses any key.
-* Read the **level-name** and **server-port** from the BDS server's existing `server.properties` file.
-* Store backup files in a user-specified directory.
-* Generate an `.ini` configuration file at runtime, allowing users to customize the program's settings.
-* Perform scheduled backups using either **time-based** or **cycle-based** modes.
-* Automatically remove older backups when the number of stored backups exceeds the configured limit.
+A Windows PowerShell 5.1 maintenance tool for **Minecraft Bedrock Dedicated Server (BDS)**.
 
-The project is primarily designed to provide a simple and automated way to manage Minecraft BDS backups while minimizing manual server maintenance.
+My BDS MaintenanceTool is designed to provide a single, portable maintenance environment for a BDS installation, combining:
+
+- Interactive console management
+- BDS stdin/stdout/stderr redirection
+- BDS console output capture
+- Automatic and manual backups
+- Backup cleanup
+- Process identity tracking
+- Watchdog-based failure protection
+- Shared-memory logging
+- CrashLog generation
+- BDS process verification
+- State checkpoints
+- Safe BDS shutdown and restart
+
+The tool is implemented as a **single PowerShell script**, while internally separating its responsibilities into several relatively independent execution domains.
+
+> Main script: `My_BDS_MaintenanceTool.ps1`
+>
+> Launcher: `My_BDS_MaintenanceTool.bat`
+>
+> Chinese documentation: [`README_CN.md`](README_CN.md)
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Design Goals](#design-goals)
+- [Architecture](#architecture)
+- [Console](#console)
+- [BDS Communication](#bds-communication)
+- [BDS Output Handling](#bds-output-handling)
+- [Command System](#command-system)
+- [Automatic Backups](#automatic-backups)
+- [Backup Workflow](#backup-workflow)
+- [Watchdog](#watchdog)
+- [Process Identity Memory](#process-identity-memory)
+- [BDS Process Identification](#bds-process-identification)
+- [Shared Log Ring Buffer](#shared-log-ring-buffer)
+- [Logging](#logging)
+- [Log Time Format](#log-time-format)
+- [CrashLog](#crashlog)
+- [State Checkpoints](#state-checkpoints)
+- [BDS Startup](#bds-startup)
+- [Safe BDS Shutdown](#safe-bds-shutdown)
+- [Configuration](#configuration)
+- [Directory Layout](#directory-layout)
+- [Launching the Tool](#launching-the-tool)
+- [Console Display](#console-display)
+- [Error Handling](#error-handling)
+- [Unexpected BDS Exit](#unexpected-bds-exit)
+- [Failure Protection](#failure-protection)
+- [Design Summary](#design-summary)
+
+---
+
+# Overview
+
+My BDS MaintenanceTool is intended to operate as a long-running maintenance layer around a Minecraft Bedrock Dedicated Server.
+
+It is not merely a BDS launcher.
+
+Its responsibilities are divided into several logical domains:
+
+```text
+                    My_BDS_MaintenanceTool.ps1
+                              │
+              ┌───────────────┼────────────────┐
+              │               │                │
+              ▼               ▼                ▼
+           Console          Backup           Watchdog
+              │               │                │
+              │               │                │
+              ▼               ▼                ▼
+          BDS Pipes        Backup Logic      Logging
+              │                              Protection
+              │
+       ┌──────┴──────┐
+       ▼             ▼
+    BDS stdin    BDS stdout/stderr
