@@ -1,74 +1,84 @@
-# My BDS MaintenanceTool
-
-A Windows PowerShell 5.1 maintenance tool for **Minecraft Bedrock Dedicated Server (BDS)**.
-
-My BDS MaintenanceTool is designed to provide a single, portable maintenance environment for a BDS installation, combining:
-
-- Interactive console management
-- BDS stdin/stdout/stderr redirection
-- BDS console output capture
-- Automatic and manual backups
-- Backup cleanup
-- Process identity tracking
-- Watchdog-based failure protection
-- Shared-memory logging
-- CrashLog generation
-- BDS process verification
-- State checkpoints
-- Safe BDS shutdown and restart
-
-The tool is implemented as a **single PowerShell script**, while internally separating its responsibilities into several relatively independent execution domains.
-
-> Main script: `My_BDS_MaintenanceTool.ps1`
->
-> Launcher: `My_BDS_MaintenanceTool.bat`
->
-> Chinese documentation: [`README_CN.md`](README_CN.md)
 
 ---
 
-## Table of Contents
+### `README.md`
+
+```markdown
+# My BDS MaintenanceTool
+
+> Minecraft Bedrock Dedicated Server Maintenance Tool
+>
+> Current Version: **v0.1.0**
+>
+> Status: Initial Development
+
+My BDS MaintenanceTool is a Windows PowerShell 5.1 maintenance tool for Minecraft Bedrock Dedicated Server (BDS).
+
+It is more than a simple BDS launcher.
+
+The project provides an integrated maintenance architecture containing:
+
+- Interactive Console
+- BDS stdin/stdout/stderr pipes
+- BDS output capture
+- BDS console output forwarding
+- Automatic backups
+- Manual backups
+- Backup cleanup
+- Precise BDS process identification
+- Watchdog
+- Shared-memory log buffering
+- `.log` logging
+- `.crashlog` crash reports
+- State checkpoints
+- Unexpected-exit detection
+- Safe BDS shutdown
+- Emergency BDS protection
+
+The project uses a **single PowerShell script with multiple logically separated components**.
+
+Console, Backup, and Watchdog are architecturally separated while remaining deployable as a single `.ps1` file.
+
+---
+
+## Contents
 
 - [Overview](#overview)
 - [Design Goals](#design-goals)
 - [Architecture](#architecture)
 - [Console](#console)
-- [BDS Communication](#bds-communication)
+- [Backup](#backup)
+- [Watchdog](#watchdog)
+- [BDS I/O](#bds-io)
 - [BDS Output Handling](#bds-output-handling)
 - [Command System](#command-system)
 - [Automatic Backups](#automatic-backups)
 - [Backup Workflow](#backup-workflow)
-- [Watchdog](#watchdog)
-- [Process Identity Memory](#process-identity-memory)
-- [BDS Process Identification](#bds-process-identification)
-- [Shared Log Ring Buffer](#shared-log-ring-buffer)
+- [Process Identification](#process-identification)
+- [Shared Memory](#shared-memory)
 - [Logging](#logging)
-- [Log Time Format](#log-time-format)
 - [CrashLog](#crashlog)
 - [State Checkpoints](#state-checkpoints)
 - [BDS Startup](#bds-startup)
 - [Safe BDS Shutdown](#safe-bds-shutdown)
+- [Unexpected Exit Protection](#unexpected-exit-protection)
 - [Configuration](#configuration)
 - [Directory Layout](#directory-layout)
-- [Launching the Tool](#launching-the-tool)
+- [Launching](#launching)
 - [Console Display](#console-display)
 - [Error Handling](#error-handling)
-- [Unexpected BDS Exit](#unexpected-bds-exit)
-- [Failure Protection](#failure-protection)
-- [Design Summary](#design-summary)
+- [Version Roadmap](#version-roadmap)
 
 ---
 
-# Overview
+## Overview
 
-My BDS MaintenanceTool is intended to operate as a long-running maintenance layer around a Minecraft Bedrock Dedicated Server.
+My BDS MaintenanceTool is intended to act as a long-running maintenance layer around a Minecraft Bedrock Dedicated Server.
 
-It is not merely a BDS launcher.
-
-Its responsibilities are divided into several logical domains:
+The overall architecture is:
 
 ```text
-                    My_BDS_MaintenanceTool.ps1
+                     My_BDS_MaintenanceTool.ps1
                               │
               ┌───────────────┼────────────────┐
               │               │                │
